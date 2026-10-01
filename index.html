@@ -23,7 +23,6 @@
     box-shadow: 0 1px 4px rgba(0,0,0,.06);
   }
   label { display: block; font-weight: 600; margin-bottom: 8px; font-size: .95rem; }
-  .row { display: flex; flex-wrap: wrap; gap: 8px; }
   button {
     padding: 10px 14px;
     border: 1px solid #cbd5e1;
@@ -45,6 +44,17 @@
   }
   .start-btn:disabled { background: #94a3b8; cursor: not-allowed; }
 
+  /* Чекбокс */
+  .checkbox-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: .95rem;
+    cursor: pointer;
+  }
+  .checkbox-row input { margin-top: 3px; width: 18px; height: 18px; cursor: pointer; }
+  .checkbox-row span { line-height: 1.35; }
+
   /* Игра */
   .hud { display: flex; justify-content: space-between; font-weight: 600; margin-bottom: 12px; font-size: .95rem; }
   .equation {
@@ -54,8 +64,6 @@
     margin: 20px 0 8px;
     letter-spacing: 1px;
   }
-
-  /* Кнопка подсказки */
   .hint-toggle {
     display: block;
     margin: 0 auto 16px;
@@ -68,21 +76,18 @@
     cursor: pointer;
   }
   .hint-toggle:hover { background: #e2e8f0; }
-
-  /* Блок подсказки */
   .hint-box {
     background: #eff6ff;
     border-left: 4px solid #2563eb;
     padding: 12px 14px;
     border-radius: 8px;
     color: #1e3a8a;
-    font-size: .95rem;
+    font-size: .98rem;
     margin-bottom: 16px;
     display: none;
   }
   .hint-box.show { display: block; }
-  .hint-box .rule { font-weight: 600; margin-bottom: 6px; }
-  .hint-box .example { color: #1e40af; font-family: ui-monospace, monospace; }
+  .hint-box .rule { font-weight: 600; }
 
   .answers { display: grid; gap: 10px; }
   .answers button {
@@ -141,6 +146,14 @@
   </div>
 
   <div class="card">
+    <label class="checkbox-row">
+      <input type="checkbox" id="shufflePosition">
+      <span>Перемешивать положение неизвестного<br>
+      <small style="color:#64748b;">Для суммы и произведения: x может стоять как слева, так и справа. Для уменьшаемого/вычитаемого/делимого/делителя положение уже фиксировано правилом.</small></span>
+    </label>
+  </div>
+
+  <div class="card">
     <label>Количество примеров</label>
     <div class="count-row" id="countRow">
       <button data-count="5">5</button>
@@ -169,7 +182,6 @@
     <button class="hint-toggle" id="hintToggle">💡 Показать подсказку</button>
     <div class="hint-box" id="hintBox">
       <div class="rule" id="hintRule"></div>
-      <div class="example" id="hintExample"></div>
     </div>
 
     <div class="answers" id="answers"></div>
@@ -193,13 +205,22 @@
 (function() {
   'use strict';
 
+  // ---------- Описание типов ----------
+  // text(a, b) — как показать уравнение.
+  //   Для add и mul: если включён state.shufflePosition, x может стоять и слева, и справа.
+  //   Для остальных типов положение x задано правилом (x — уменьшаемое / делимое / вычитаемое / делитель).
+  // Правило и формула ответа от порядка НЕ зависят.
   const TYPES = {
     add: {
       hint: 'Чтобы найти неизвестное слагаемое, из суммы вычти известное слагаемое',
-      text: (a, b) => `x + ${a} = ${b}`,
+      text: (a, b) => {
+        if (state.shufflePosition && Math.random() < 0.5) {
+          return `${a} + x = ${b}`;
+        }
+        return `x + ${a} = ${b}`;
+      },
       correctAnswer: (a, b) => b - a,
       correctFormulaText: (a, b) => `x = ${b} − ${a}`,
-      hintExample: (a, b) => `x = ${b} − ${a} = ${b - a}`,
       wrongOptions: (a, b) => [
         `x = ${b} + ${a}`,
         `x = ${b} · ${a}`,
@@ -216,7 +237,6 @@
       text: (a, b) => `x − ${a} = ${b}`,
       correctAnswer: (a, b) => b + a,
       correctFormulaText: (a, b) => `x = ${b} + ${a}`,
-      hintExample: (a, b) => `x = ${b} + ${a} = ${b + a}`,
       wrongOptions: (a, b) => [
         `x = ${b} − ${a}`,
         `x = ${b} · ${a}`,
@@ -233,7 +253,6 @@
       text: (a, b) => `${a} − x = ${b}`,
       correctAnswer: (a, b) => a - b,
       correctFormulaText: (a, b) => `x = ${a} − ${b}`,
-      hintExample: (a, b) => `x = ${a} − ${b} = ${a - b}`,
       wrongOptions: (a, b) => [
         `x = ${a} + ${b}`,
         `x = ${b} − ${a}`,
@@ -247,10 +266,14 @@
     },
     mul: {
       hint: 'Чтобы найти неизвестный множитель, произведение раздели на известный множитель',
-      text: (a, b) => `x · ${a} = ${b}`,
+      text: (a, b) => {
+        if (state.shufflePosition && Math.random() < 0.5) {
+          return `${a} · x = ${b}`;
+        }
+        return `x · ${a} = ${b}`;
+      },
       correctAnswer: (a, b) => b / a,
       correctFormulaText: (a, b) => `x = ${b} : ${a}`,
-      hintExample: (a, b) => `x = ${b} : ${a} = ${b / a}`,
       wrongOptions: (a, b) => [
         `x = ${b} · ${a}`,
         `x = ${b} + ${a}`,
@@ -267,7 +290,6 @@
       text: (a, b) => `x : ${a} = ${b}`,
       correctAnswer: (a, b) => b * a,
       correctFormulaText: (a, b) => `x = ${b} · ${a}`,
-      hintExample: (a, b) => `x = ${b} · ${a} = ${b * a}`,
       wrongOptions: (a, b) => [
         `x = ${b} : ${a}`,
         `x = ${b} + ${a}`,
@@ -284,7 +306,6 @@
       text: (a, b) => `${a} : x = ${b}`,
       correctAnswer: (a, b) => a / b,
       correctFormulaText: (a, b) => `x = ${a} : ${b}`,
-      hintExample: (a, b) => `x = ${a} : ${b} = ${a / b}`,
       wrongOptions: (a, b) => [
         `x = ${a} · ${b}`,
         `x = ${b} : ${a}`,
@@ -300,6 +321,7 @@
 
   const state = {
     types: ['add'],
+    shufflePosition: false,   // перемешивать ли положение x в add и mul
     count: 10,
     questions: [],
     current: 0,
@@ -324,9 +346,9 @@
   const hintToggle = $('hintToggle');
   const hintBox = $('hintBox');
   const hintRule = $('hintRule');
-  const hintExample = $('hintExample');
+  const shuffleCheckbox = $('shufflePosition');
 
-  // ---------- Выбор типов ----------
+  // ---------- Типы ----------
   typesEl.querySelectorAll('button').forEach(btn => {
     btn.addEventListener('click', () => {
       const t = btn.dataset.type;
@@ -348,6 +370,11 @@
     updateBestPreview();
   }
 
+  // ---------- Чекбокс перемешивания ----------
+  shuffleCheckbox.addEventListener('change', () => {
+    state.shufflePosition = shuffleCheckbox.checked;
+  });
+
   // ---------- Количество ----------
   countRow.querySelectorAll('button').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -360,7 +387,9 @@
 
   // ---------- Рекорды ----------
   function bestKey() {
-    return 'eq_best_' + [...state.types].sort().join('-');
+    // учитываем и режим перемешивания, чтобы рекорды не смешивались
+    const types = [...state.types].sort().join('-');
+    return 'eq_best_' + types + (state.shufflePosition ? '_shuf' : '');
   }
   function getBest(key, count) {
     try {
@@ -388,10 +417,11 @@
 
   function updateBestPreview() {
     const best = getBest(bestKey(), state.count);
+    const note = state.shufflePosition ? ' (со перемешиванием)' : '';
     if (!best) {
-      bestPreview.textContent = `Рекорд для этих типов (${state.count} примеров): пока нет`;
+      bestPreview.textContent = `Рекорд для этих типов${note} (${state.count} примеров): пока нет`;
     } else {
-      bestPreview.textContent = `Рекорд для этих типов (${state.count} примеров): ${formatTime(best.time)}`;
+      bestPreview.textContent = `Рекорд для этих типов${note} (${state.count} примеров): ${formatTime(best.time)}`;
     }
   }
 
@@ -435,7 +465,6 @@
         x: data.x,
         equationText: text,
         hint: type.hint,
-        hintExample: type.hintExample(data.a, data.b),
         options,
         correctText,
         correctValue: data.x
@@ -477,15 +506,10 @@
     feedbackEl.textContent = '';
     feedbackEl.className = 'feedback';
 
-    // Подсказка: скрываем и сбрасываем кнопку
+    // Скрываем подсказку на новом примере
     hintBox.classList.remove('show');
-    hintBox.dataset.shownFor = '';
     hintToggle.textContent = '💡 Показать подсказку';
-    hintToggle.disabled = false;
-
-    // Наполняем содержимое — оно раскроется, если ученик нажмёт
     hintRule.textContent = q.hint;
-    hintExample.textContent = q.hintExample;
 
     answersEl.innerHTML = '';
     q.options.forEach(opt => {
@@ -498,11 +522,7 @@
 
   // ---------- Подсказка ----------
   hintToggle.addEventListener('click', () => {
-    const q = state.questions[state.current];
-    if (!q) return;
-
     if (hintBox.classList.contains('show')) {
-      // повторное нажатие — скрыть
       hintBox.classList.remove('show');
       hintToggle.textContent = '💡 Показать подсказку';
     } else {
