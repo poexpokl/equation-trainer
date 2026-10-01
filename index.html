@@ -43,6 +43,13 @@
     border: none; border-radius: 10px; font-size: 1.1rem; font-weight: 600; cursor: pointer;
   }
   .start-btn:disabled { background: #94a3b8; cursor: not-allowed; }
+  .secondary-btn {
+    width: 100%; padding: 12px; background: #fff; color: #2563eb;
+    border: 1px solid #2563eb; border-radius: 10px;
+    font-size: 1rem; font-weight: 600; cursor: pointer;
+    margin-bottom: 14px;
+  }
+  .secondary-btn:hover { background: #eff6ff; }
 
   /* Игра */
   .hud { display: flex; justify-content: space-between; font-weight: 600; margin-bottom: 12px; font-size: .95rem; }
@@ -114,6 +121,106 @@
   }
   .mistakes-list.show { display: block; }
   .mistakes-list div { margin: 4px 0; }
+
+  /* ============ СПРАВОЧНИК ============ */
+  .ref-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+    gap: 12px;
+  }
+  .ref-header h2 {
+    font-size: 1.2rem;
+    margin: 0;
+  }
+  .back-btn {
+    padding: 8px 14px;
+    background: #fff;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: .95rem;
+  }
+  .back-btn:hover { background: #f1f5f9; }
+
+  .ref-section {
+    margin-bottom: 22px;
+  }
+  .ref-section h3 {
+    font-size: 1.05rem;
+    margin: 0 0 10px;
+    color: #1e293b;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .ref-section h3 .icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px; height: 28px;
+    border-radius: 8px;
+    font-size: 1rem;
+    background: #e2e8f0;
+  }
+
+  .term-card {
+    background: #fff;
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin-bottom: 10px;
+    box-shadow: 0 1px 4px rgba(0,0,0,.06);
+  }
+  .term-card .term-name {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+  .term-card .term-def {
+    font-size: .95rem;
+    color: #334155;
+    margin-bottom: 10px;
+    line-height: 1.4;
+  }
+  .term-example {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 1.25rem;
+    padding: 8px 12px;
+    background: #f8fafc;
+    border-radius: 8px;
+    letter-spacing: 1px;
+  }
+  /* цветовые подсветки */
+  .hl-sum    { color: #2563eb; font-weight: 700; }  /* сумма / разность / произведение / частное */
+  .hl-term1  { color: #b45309; font-weight: 700; }  /* первое слагаемое и т.п. */
+  .hl-term2  { color: #15803d; font-weight: 700; }  /* второе */
+  .hl-op     { color: #64748b; }
+
+  .term-example .bracket {
+    display: inline-block;
+    border-top: 2px solid currentColor;
+    padding-top: 2px;
+    margin-top: 2px;
+    font-size: .8rem;
+    font-family: inherit;
+    color: #64748b;
+    letter-spacing: 0;
+  }
+
+  .ref-intro {
+    background: #eff6ff;
+    border-left: 4px solid #2563eb;
+    padding: 12px 14px;
+    border-radius: 8px;
+    color: #1e3a8a;
+    font-size: .95rem;
+    margin-bottom: 18px;
+    line-height: 1.45;
+  }
 </style>
 </head>
 <body>
@@ -122,6 +229,8 @@
 
 <!-- ЭКРАН НАСТРОЕК -->
 <div id="setup">
+  <button class="secondary-btn" id="openRefBtn">📖 Справочник</button>
+
   <div class="card">
     <label>Тип уравнений</label>
     <div class="types" id="types">
@@ -182,13 +291,135 @@
   <button class="restart-btn" id="restartBtn">Ещё раз</button>
 </div>
 
+<!-- ЭКРАН СПРАВОЧНИКА -->
+<div id="reference" class="hidden">
+  <div class="ref-header">
+    <h2>📖 Справочник</h2>
+    <button class="back-btn" id="backFromRef">← Назад</button>
+  </div>
+
+  <div class="ref-intro">
+    Каждое действие в математике состоит из частей, и у каждой части есть своё название.
+    Ниже — все термины с примерами и цветовой подсветкой. Обрати внимание: в каждом действии
+    <b>результат</b> выделен синим, <b>первая часть</b> — оранжевым, <b>вторая</b> — зелёным.
+  </div>
+
+  <!-- СЛОЖЕНИЕ -->
+  <div class="ref-section">
+    <h3><span class="icon">➕</span> Сложение</h3>
+
+    <div class="term-card">
+      <div class="term-name hl-term1">Слагаемое</div>
+      <div class="term-def">Число, которое складывают с другим. Слагаемых всегда два (или больше).</div>
+      <div class="term-example">
+        <span class="hl-term1">3</span> <span class="hl-op">+</span> <span class="hl-term2">4</span> <span class="hl-op">=</span> <span class="hl-sum">7</span>
+      </div>
+    </div>
+
+    <div class="term-card">
+      <div class="term-name hl-sum">Сумма</div>
+      <div class="term-def">Результат сложения. Это то, что получается, когда складывают слагаемые.</div>
+      <div class="term-example">
+        <span class="hl-term1">3</span> <span class="hl-op">+</span> <span class="hl-term2">4</span> <span class="hl-op">=</span> <span class="hl-sum">7</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ВЫЧИТАНИЕ -->
+  <div class="ref-section">
+    <h3><span class="icon">➖</span> Вычитание</h3>
+
+    <div class="term-card">
+      <div class="term-name hl-term1">Уменьшаемое</div>
+      <div class="term-def">Число, из которого вычитают. Оно стоит первым. От него «уменьшают».</div>
+      <div class="term-example">
+        <span class="hl-term1">10</span> <span class="hl-op">−</span> <span class="hl-term2">4</span> <span class="hl-op">=</span> <span class="hl-sum">6</span>
+      </div>
+    </div>
+
+    <div class="term-card">
+      <div class="term-name hl-term2">Вычитаемое</div>
+      <div class="term-def">Число, которое вычитают. Оно стоит вторым.</div>
+      <div class="term-example">
+        <span class="hl-term1">10</span> <span class="hl-op">−</span> <span class="hl-term2">4</span> <span class="hl-op">=</span> <span class="hl-sum">6</span>
+      </div>
+    </div>
+
+    <div class="term-card">
+      <div class="term-name hl-sum">Разность</div>
+      <div class="term-def">Результат вычитания. Это то, что получается, когда из одного числа вычли другое.</div>
+      <div class="term-example">
+        <span class="hl-term1">10</span> <span class="hl-op">−</span> <span class="hl-term2">4</span> <span class="hl-op">=</span> <span class="hl-sum">6</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- УМНОЖЕНИЕ -->
+  <div class="ref-section">
+    <h3><span class="icon">✖️</span> Умножение</h3>
+
+    <div class="term-card">
+      <div class="term-name hl-term1">Множитель</div>
+      <div class="term-def">Число, которое умножают. Множителей всегда два (или больше).</div>
+      <div class="term-example">
+        <span class="hl-term1">3</span> <span class="hl-op">·</span> <span class="hl-term2">4</span> <span class="hl-op">=</span> <span class="hl-sum">12</span>
+      </div>
+    </div>
+
+    <div class="term-card">
+      <div class="term-name hl-sum">Произведение</div>
+      <div class="term-def">Результат умножения. Это то, что получается, когда перемножили множители.</div>
+      <div class="term-example">
+        <span class="hl-term1">3</span> <span class="hl-op">·</span> <span class="hl-term2">4</span> <span class="hl-op">=</span> <span class="hl-sum">12</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ДЕЛЕНИЕ -->
+  <div class="ref-section">
+    <h3><span class="icon">➗</span> Деление</h3>
+
+    <div class="term-card">
+      <div class="term-name hl-term1">Делимое</div>
+      <div class="term-def">Число, которое делят. Оно стоит первым — перед знаком деления.</div>
+      <div class="term-example">
+        <span class="hl-term1">12</span> <span class="hl-op">:</span> <span class="hl-term2">4</span> <span class="hl-op">=</span> <span class="hl-sum">3</span>
+      </div>
+    </div>
+
+    <div class="term-card">
+      <div class="term-name hl-term2">Делитель</div>
+      <div class="term-def">Число, на которое делят. Оно стоит вторым.</div>
+      <div class="term-example">
+        <span class="hl-term1">12</span> <span class="hl-op">:</span> <span class="hl-term2">4</span> <span class="hl-op">=</span> <span class="hl-sum">3</span>
+      </div>
+    </div>
+
+    <div class="term-card">
+      <div class="term-name hl-sum">Частное</div>
+      <div class="term-def">Результат деления. Это то, что получается, когда одно число разделили на другое.</div>
+      <div class="term-example">
+        <span class="hl-term1">12</span> <span class="hl-op">:</span> <span class="hl-term2">4</span> <span class="hl-op">=</span> <span class="hl-sum">3</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top: 20px; background:#f8fafc;">
+    <div style="font-size:.95rem; color:#334155; line-height:1.5;">
+      <b>Как этим пользоваться.</b> Когда решаешь уравнение, посмотри, где стоит неизвестное.
+      Если это <span class="hl-term1">первое слагаемое</span> или <span class="hl-term2">второе слагаемое</span> —
+      значит, перед тобой <b>сложение</b>, и искать нужно слагаемое через сумму.
+      Аналогично с остальными действиями: сначала определи, <i>какая часть</i> неизвестна, а потом вспомни правило.
+    </div>
+  </div>
+
+  <button class="back-btn" id="backFromRefBottom" style="width:100%; padding:12px; margin-top:8px;">← Вернуться к настройкам</button>
+</div>
+
 <script>
 (function() {
   'use strict';
 
-  // ---------- Описание типов ----------
-  // Для add и mul положение x случайно: и слева, и справа.
-  // Для sub_a / sub_b / div_a / div_b положение x задано смыслом уравнения.
   const TYPES = {
     add: {
       hint: 'Чтобы найти неизвестное слагаемое, из суммы вычти известное слагаемое',
@@ -307,6 +538,7 @@
   const setupEl = $('setup');
   const gameEl = $('game');
   const resultEl = $('result');
+  const referenceEl = $('reference');
   const typesEl = $('types');
   const countRow = $('countRow');
   const equationEl = $('equation');
@@ -438,13 +670,27 @@
     return questions;
   }
 
-  // ---------- Игра ----------
+  // ---------- Экраны ----------
   function showScreen(name) {
     setupEl.classList.toggle('hidden', name !== 'setup');
     gameEl.classList.toggle('hidden', name !== 'game');
     resultEl.classList.toggle('hidden', name !== 'result');
+    referenceEl.classList.toggle('hidden', name !== 'reference');
+    window.scrollTo(0, 0);
   }
 
+  // ---------- Справочник ----------
+  $('openRefBtn').addEventListener('click', () => showScreen('reference'));
+  $('backFromRef').addEventListener('click', () => {
+    showScreen('setup');
+    updateBestPreview();
+  });
+  $('backFromRefBottom').addEventListener('click', () => {
+    showScreen('setup');
+    updateBestPreview();
+  });
+
+  // ---------- Игра ----------
   function startGame() {
     state.questions = generateQuestions(state.count);
     state.current = 0;
@@ -482,7 +728,6 @@
     });
   }
 
-  // ---------- Подсказка ----------
   hintToggle.addEventListener('click', () => {
     if (hintBox.classList.contains('show')) {
       hintBox.classList.remove('show');
@@ -493,7 +738,6 @@
     }
   });
 
-  // ---------- Ответ ----------
   function chooseAnswer(btn, isCorrect, q) {
     if (state.locked) return;
 
@@ -557,35 +801,4 @@
     }
 
     $('bestInfo').textContent = best
-      ? `Лучший результат (${state.count} примеров): ${formatTime(best.time)}`
-      : '';
-
-    const ml = $('mistakesList');
-    if (state.mistakes.length > 0) {
-      ml.classList.add('show');
-      ml.innerHTML = '<b>Разбор ошибок:</b>' +
-        state.mistakes.map(m =>
-          `<div>${m.equation} → ты выбрал «${m.chosen}», правильный ответ: «${m.correct}»</div>`
-        ).join('');
-    } else {
-      ml.classList.remove('show');
-      ml.innerHTML = '';
-    }
-
-    showScreen('result');
-    updateBestPreview();
-  }
-
-  // ---------- События ----------
-  $('startBtn').addEventListener('click', startGame);
-  $('restartBtn').addEventListener('click', () => {
-    showScreen('setup');
-    updateBestPreview();
-  });
-
-  renderTypes();
-  updateBestPreview();
-})();
-</script>
-</body>
-</html>
+      ? `Лучший результат (${state.count} примеров): ${formatTime(best.time)}
