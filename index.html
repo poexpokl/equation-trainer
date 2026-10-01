@@ -44,17 +44,6 @@
   }
   .start-btn:disabled { background: #94a3b8; cursor: not-allowed; }
 
-  /* Чекбокс */
-  .checkbox-row {
-    display: flex;
-    align-items: flex-start;
-    gap: 10px;
-    font-size: .95rem;
-    cursor: pointer;
-  }
-  .checkbox-row input { margin-top: 3px; width: 18px; height: 18px; cursor: pointer; }
-  .checkbox-row span { line-height: 1.35; }
-
   /* Игра */
   .hud { display: flex; justify-content: space-between; font-weight: 600; margin-bottom: 12px; font-size: .95rem; }
   .equation {
@@ -146,14 +135,6 @@
   </div>
 
   <div class="card">
-    <label class="checkbox-row">
-      <input type="checkbox" id="shufflePosition">
-      <span>Перемешивать положение неизвестного<br>
-      <small style="color:#64748b;">Для суммы и произведения: x может стоять как слева, так и справа. Для уменьшаемого/вычитаемого/делимого/делителя положение уже фиксировано правилом.</small></span>
-    </label>
-  </div>
-
-  <div class="card">
     <label>Количество примеров</label>
     <div class="count-row" id="countRow">
       <button data-count="5">5</button>
@@ -206,19 +187,14 @@
   'use strict';
 
   // ---------- Описание типов ----------
-  // text(a, b) — как показать уравнение.
-  //   Для add и mul: если включён state.shufflePosition, x может стоять и слева, и справа.
-  //   Для остальных типов положение x задано правилом (x — уменьшаемое / делимое / вычитаемое / делитель).
-  // Правило и формула ответа от порядка НЕ зависят.
+  // Для add и mul положение x случайно: и слева, и справа.
+  // Для sub_a / sub_b / div_a / div_b положение x задано смыслом уравнения.
   const TYPES = {
     add: {
       hint: 'Чтобы найти неизвестное слагаемое, из суммы вычти известное слагаемое',
-      text: (a, b) => {
-        if (state.shufflePosition && Math.random() < 0.5) {
-          return `${a} + x = ${b}`;
-        }
-        return `x + ${a} = ${b}`;
-      },
+      text: (a, b) => Math.random() < 0.5
+        ? `x + ${a} = ${b}`
+        : `${a} + x = ${b}`,
       correctAnswer: (a, b) => b - a,
       correctFormulaText: (a, b) => `x = ${b} − ${a}`,
       wrongOptions: (a, b) => [
@@ -266,12 +242,9 @@
     },
     mul: {
       hint: 'Чтобы найти неизвестный множитель, произведение раздели на известный множитель',
-      text: (a, b) => {
-        if (state.shufflePosition && Math.random() < 0.5) {
-          return `${a} · x = ${b}`;
-        }
-        return `x · ${a} = ${b}`;
-      },
+      text: (a, b) => Math.random() < 0.5
+        ? `x · ${a} = ${b}`
+        : `${a} · x = ${b}`,
       correctAnswer: (a, b) => b / a,
       correctFormulaText: (a, b) => `x = ${b} : ${a}`,
       wrongOptions: (a, b) => [
@@ -321,7 +294,6 @@
 
   const state = {
     types: ['add'],
-    shufflePosition: false,   // перемешивать ли положение x в add и mul
     count: 10,
     questions: [],
     current: 0,
@@ -346,7 +318,6 @@
   const hintToggle = $('hintToggle');
   const hintBox = $('hintBox');
   const hintRule = $('hintRule');
-  const shuffleCheckbox = $('shufflePosition');
 
   // ---------- Типы ----------
   typesEl.querySelectorAll('button').forEach(btn => {
@@ -370,11 +341,6 @@
     updateBestPreview();
   }
 
-  // ---------- Чекбокс перемешивания ----------
-  shuffleCheckbox.addEventListener('change', () => {
-    state.shufflePosition = shuffleCheckbox.checked;
-  });
-
   // ---------- Количество ----------
   countRow.querySelectorAll('button').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -387,9 +353,7 @@
 
   // ---------- Рекорды ----------
   function bestKey() {
-    // учитываем и режим перемешивания, чтобы рекорды не смешивались
-    const types = [...state.types].sort().join('-');
-    return 'eq_best_' + types + (state.shufflePosition ? '_shuf' : '');
+    return 'eq_best_' + [...state.types].sort().join('-');
   }
   function getBest(key, count) {
     try {
@@ -417,11 +381,10 @@
 
   function updateBestPreview() {
     const best = getBest(bestKey(), state.count);
-    const note = state.shufflePosition ? ' (со перемешиванием)' : '';
     if (!best) {
-      bestPreview.textContent = `Рекорд для этих типов${note} (${state.count} примеров): пока нет`;
+      bestPreview.textContent = `Рекорд для этих типов (${state.count} примеров): пока нет`;
     } else {
-      bestPreview.textContent = `Рекорд для этих типов${note} (${state.count} примеров): ${formatTime(best.time)}`;
+      bestPreview.textContent = `Рекорд для этих типов (${state.count} примеров): ${formatTime(best.time)}`;
     }
   }
 
@@ -506,7 +469,6 @@
     feedbackEl.textContent = '';
     feedbackEl.className = 'feedback';
 
-    // Скрываем подсказку на новом примере
     hintBox.classList.remove('show');
     hintToggle.textContent = '💡 Показать подсказку';
     hintRule.textContent = q.hint;
