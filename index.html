@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Тренажёр уравнений</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 16px;
+    background: #f5f7fb;
+    color: #1f2937;
+  }
+  h1 { font-size: 1.35rem; text-align: center; margin: 8px 0 20px; }
+  .card {
+    background: #fff;
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 14px;
+    box-shadow: 0 1px 4px rgba(0,0,0,.06);
+  }
+  label { display: block; font-weight: 600; margin-bottom: 8px; font-size: .95rem; }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; }
+  button {
+    padding: 10px 14px;
+    border: 1px solid #cbd5e1;
+    background: #fff;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: .15s;
+    font-family: inherit;
+  }
+  button.active { background: #2563eb; color: #fff; border-color: #2563eb; }
+  .types { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .types button { text-align: left; }
+  .count-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .count-row button { flex: 1; min-width: 60px; }
+  .start-btn {
+    width: 100%; padding: 14px; background: #16a34a; color: #fff;
+    border: none; border-radius: 10px; font-size: 1.1rem; font-weight: 600; cursor: pointer;
+  }
+  .start-btn:disabled { background: #94a3b8; cursor: not-allowed; }
+
+  /* Игра */
+  .hud { display: flex; justify-content: space-between; font-weight: 600; margin-bottom: 12px; font-size: .95rem; }
+  .equation {
+    text-align: center;
+    font-size: 2.4rem;
+    font-weight: 700;
+    margin: 20px 0 8px;
+    letter-spacing: 1px;
+  }
+  .hint {
+    text-align: center;
+    color: #64748b;
+    font-size: .95rem;
+    margin-bottom: 20px;
+    min-height: 20px;
+  }
+  .answers { display: grid; gap: 10px; }
+  .answers button {
+    padding: 16px;
+    font-size: 1.35rem;
+    font-weight: 600;
+    text-align: center;
+  }
+  .answers button.correct { background: #16a34a; color: #fff; border-color: #16a34a; }
+  .answers button.wrong { background: #dc2626; color: #fff; border-color: #dc2626; }
+  .answers button:disabled { cursor: default; }
+  .feedback { text-align: center; min-height: 26px; margin-top: 12px; font-weight: 600; }
+  .feedback.right { color: #16a34a; }
+  .feedback.wrong { color: #dc2626; }
+
+  /* Результат */
+  .result-time { font-size: 2.2rem; font-weight: 700; text-align: center; margin: 12px 0; }
+  .result-stats { text-align: center; font-size: 1.05rem; margin-bottom: 12px; }
+  .record-note { text-align: center; font-size: 1.05rem; margin-bottom: 16px; }
+  .record-note.new { color: #16a34a; font-weight: 700; }
+  .best-info { font-size: .95rem; color: #475569; text-align: center; margin-top: 8px; }
+  .restart-btn {
+    width: 100%; padding: 14px; background: #2563eb; color: #fff;
+    border: none; border-radius: 10px; font-size: 1rem; font-weight: 600; cursor: pointer;
+  }
+  .hidden { display: none; }
+  .mistakes-list {
+    margin-top: 10px;
+    padding: 10px;
+    background: #fef2f2;
+    border-radius: 8px;
+    font-size: .9rem;
+    color: #7f1d1d;
+    display: none;
+  }
+  .mistakes-list.show { display: block; }
+  .mistakes-list div { margin: 4px 0; }
+</style>
+</head>
+<body>
+
+<h1>🧮 Тренажёр уравнений</h1>
+
+<!-- ЭКРАН НАСТРОЕК -->
+<div id="setup">
+  <div class="card">
+    <label>Тип уравнений</label>
+    <div class="types" id="types">
+      <button data-type="add" class="active">x + a = b (слагаемое)</button>
+      <button data-type="sub_a">x − a = b (уменьшаемое)</button>
+      <button data-type="sub_b">a − x = b (вычитаемое)</button>
+      <button data-type="mul">x · a = b (множитель)</button>
+      <button data-type="div_a">x : a = b (делимое)</button>
+      <button data-type="div_b">a : x = b (делитель)</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <label>Количество примеров</label>
+    <div class="count-row" id="countRow">
+      <button data-count="5">5</button>
+      <button data-count="10" class="active">10</button>
+      <button data-count="15">15</button>
+      <button data-count="20">20</button>
+    </div>
+  </div>
+
+  <div class="card" id="bestCard">
+    <div class="best-info" id="bestPreview">—</div>
+  </div>
+
+  <button class="start-btn" id="startBtn">Начать</button>
+</div>
+
+<!-- ЭКРАН ИГРЫ -->
+<div id="game" class="hidden">
+  <div class="card">
+    <div class="hud">
+      <span id="progress">1 / 10</span>
+      <span id="timer">0.0 с</span>
+    </div>
+    <div class="equation" id="equation">x + 5 = 12</div>
+    <div class="hint" id="hint">Как найти неизвестное слагаемое?</div>
+    <div class="answers" id="answers">
+      <!-- варианты ответов появятся здесь -->
+    </div>
+    <div class="feedback" id="feedback"></div>
+  </div>
+</div>
+
+<!-- ЭКРАН РЕЗУЛЬТАТА -->
+<div id="result" class="hidden">
+  <div class="card">
+    <div class="result-time" id="resultTime">0.0 с</div>
+    <div class="result-stats" id="resultStats"></div>
+    <div class="record-note" id="recordNote"></div>
+    <div class="best-info" id="bestInfo"></div>
+    <div class="mistakes-list" id="mistakesList"></div>
+  </div>
+  <button class="restart-btn" id="restartBtn">Ещё раз</button>
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  // ---------- Описание типов уравнений ----------
+  // Каждый тип содержит:
+  //  - text(a, b): как показать уравнение
+  //  - formulaLabel: правильная формула ("x = b − a")
+  //  - correctAnswer(a, b): правильное значение x
+  //  - correctFormulaText(a, b): как показать правильную формулу с числами
+  //  - wrongOptions(a, b): массив неправильных ответов (формулы)
+  //  - hint: подсказка-правило
+  const TYPES = {
+    add: {
+      hint: 'Чтобы найти неизвестное слагаемое, из суммы вычти известное слагаемое',
+      text: (a, b) => `x + ${a} = ${b}`,
+      formulaLabel: 'x = b − a',
+      correctAnswer: (a, b) => b - a,
+      correctFormulaText: (a, b) => `x = ${b} − ${a}`,
+      wrongOptions: (a, b) => [
+        `x = ${b} + ${a}`,
+        `x = ${b} · ${a}`,
+        `x = ${a} − ${b}`
+      ],
+      make: () => {
+        const a = 2 + Math.floor(Math.random() * 8);      // 2..9
+        const x = 2 + Math.floor(Math.random() * 18);     // 2..19
+        return { a, b: x + a, x };
+      }
+    },
+    sub_a: {
+      hint: 'Чтобы найти неизвестное уменьшаемое, к разности прибавь вычитаемое',
+      text: (a, b) => `x − ${a} = ${b}`,
+      formulaLabel: 'x = b + a',
+      correctAnswer: (a, b) => b + a,
+      correctFormulaText: (a, b) => `x = ${b} + ${a}`,
+      wrongOptions: (a, b) => [
+        `x = ${b} − ${a}`,
+        `x = ${b} · ${a}`,
+        `x = ${a} − ${b}`
+      ],
+      make: () => {
+        const a = 2 + Math.floor(Math.random() * 8);
+        const x = a + 2 + Math.floor(Math.random() * 18); // x > a
+        return { a, b: x - a, x };
+      }
+    },
+    sub_b: {
+      hint: 'Чтобы найти неизвестное вычитаемое, из уменьшаемого вычти разность',
+      text: (a, b) => `${a} − x = ${b}`,
+      formulaLabel: 'x = a − b',
+      correctAnswer: (a, b) => a - b,
+      correctFormulaText: (a, b) => `x = ${a} − ${b}`,
+      wrongOptions: (a, b) => [
+        `x = ${a} + ${b}`,
+        `x = ${b} − ${a}`,
+        `x = ${a} · ${b}`
+      ],
+      make: () => {
+        const a = 5 + Math.floor(Math.random() * 15);    // 5..19
+        const x = 1 + Math.floor(Math.random() * (a - 1)); // 1..a-1
+        return { a, b: a - x, x };
+      }
+    },
+    mul: {
+      hint: 'Чтобы найти неизвестный множитель, произведение раздели на известный множитель',
+      text: (a, b) => `x · ${a} = ${b}`,
+      formulaLabel: 'x = b : a',
+      correctAnswer: (a, b) => b / a,
+      correctFormulaText: (a, b) => `x = ${b} : ${a}`,
+      wrongOptions: (a, b) => [
+        `x = ${b} · ${a}`,
+        `x = ${b} + ${a}`,
+        `x = ${b} − ${a}`
+      ],
+      make: () => {
+        const a = 2 + Math.floor(Math.random() * 8);   // 2..9
+        const x = 2 + Math.floor(Math.random() * 8);   // 2..9
+        return { a, b: x * a, x };
+      }
+    },
+    div_a: {
+      hint: 'Чтобы найти неизвестное делимое, частное умножь на делитель',
+      text: (a, b) => `x : ${a} = ${b}`,
+      formulaLabel: 'x = b · a',
+      correctAnswer: (a, b) => b * a,
+      correctFormulaText: (a, b) => `x = ${b} · ${a}`,
+      wrongOptions: (a, b) => [
+        `x = ${b} : ${a}`,
+        `x = ${b} + ${a}`,
+        `x = ${b} − ${a}`
+      ],
+      make: () => {
+        const a = 2 + Math.floor(Math.random() * 8);   // 2..9
+        const b = 2 + Math.floor(Math.random() * 8);   // 2..9
+        return { a, b, x: b * a };
+      }
+    },
+    div_b: {
+      hint: 'Чтобы найти неизвестный делитель, делимое раздели на частное',
+      text: (a, b) => `${a} : x = ${b}`,
+      formulaLabel: 'x = a : b',
+      correctAnswer: (a, b) => a / b,
+      correctFormulaText: (a, b) => `x = ${a} : ${b}`,
+      wrongOptions: (a, b) => [
+        `x = ${a} · ${b}`,
+        `x = ${b} : ${a}`,
+        `x = ${a} + ${b}`
+      ],
+      make: () => {
+        const b = 2 + Math.floor(Math.random() * 8);   // делитель 2..9
+        const x = 2 + Math.floor(Math.random() * 8);   // частное 2..9
+        return { a: b * x, b, x };
+      }
+    }
+  };
+
+  // ---------- Состояние ----------
+  const state = {
+    types: ['add'],           // выбранные типы
+    count: 10,
+    questions: [],
+    current: 0,
+    startTime: 0,
+    timerId: null,
+    locked: false,
+    mistakes: []              // {equation, chosen, correct}
+  };
+
+  // ---------- DOM ----------
+  const $ = (id) => document.getElementById(id);
+  const setupEl = $('setup');
+  const gameEl = $('game');
+  const resultEl = $('result');
+  const typesEl = $('types');
+  const countRow = $('countRow');
+  const equationEl = $('equation');
+  const hintEl = $('hint');
+  const answersEl = $('answers');
+  const feedbackEl = $('feedback');
+  const progressEl = $('progress');
+  const timerEl = $('timer');
+  const bestPreview = $('bestPreview');
+
+  // ---------- Выбор типов ----------
+  typesEl.querySelectorAll('button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const t = btn.dataset.type;
+      const idx = state.types.indexOf(t);
+      if (idx === -1) {
+        state.types.push(t);
+      } else {
+        if (state.types.length === 1) return; // хотя бы один
+        state.types.splice(idx, 1);
+      }
+      renderTypes();
+    });
+  });
+
+  function renderTypes() {
+    typesEl.querySelectorAll('button').forEach(btn => {
+      btn.classList.toggle('active', state.types.includes(btn.dataset.type));
+    });
+    updateBestPreview();
+  }
+
+  // ---------- Количество примеров ----------
+  countRow.querySelectorAll('button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      countRow.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      state.count = Number(btn.dataset.count);
+      updateBestPreview();
+    });
+  });
+
+  // ---------- Рекорды ----------
+  function bestKey() {
+    // Ключ зависит от набора типов (отсортированных)
+    return 'eq_best_' + [...state.types].sort().join('-');
+  }
+  function getBest(key, count) {
+    try {
+      const raw = localStorage.getItem(key);
+      if (!raw) return null;
+      const data = JSON.parse(raw);
+      return data[count] || null;
+    } catch (e) { return null; }
+  }
+  function saveBest(key, count, timeSeconds) {
+    let data = {};
+    try {
+      const raw = localStorage.getItem(key);
+      if (raw) data = JSON.parse(raw) || {};
+    } catch (e) { data = {}; }
+    const prev = data[count];
+    if (!prev || timeSeconds < prev.time) {
+      data[count] = { time: timeSeconds, date: new Date().toISOString() };
+      localStorage.setItem(key, JSON.stringify(data));
+      return true;
+    }
+    return false;
+  }
+  function formatTime(sec) { return sec.toFixed(1) + ' с'; }
+
+  function updateBestPreview() {
+    const best = getBest(bestKey(), state.count);
+    if (!best) {
+      bestPreview.textContent = `Рекорд для этих типов (${state.count} примеров): пока нет`;
+    } else {
+      bestPreview.textContent = `Рекорд для этих типов (${state.count} примеров): ${formatTime(best.time)}`;
+    }
+  }
+
+  // ---------- Генерация примеров ----------
+  function shuffle(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  }
+
+  function generateQuestions(count) {
+    const questions = [];
+    let lastText = null;
+
+    for (let i = 0; i < count; i++) {
+      // чередуем типы: проходим по кругу выбранные
+      const typeKey = state.types[i % state.types.length];
+      const type = TYPES[typeKey];
+
+      let data, text, attempts = 0;
+      do {
+        data = type.make();
+        text = type.text(data.a, data.b);
+        attempts++;
+        if (attempts > 20) break;
+      } while (text === lastText);
+
+      // Собираем варианты ответов:
+      // правильный (формула с числами) + неправильные (тоже формулы)
+      const correctText = type.correctFormulaText(data.a, data.b);
+      const wrongs = type.wrongOptions(data.a, data.b);
+
+      const options = shuffle([
+        { text: correctText, correct: true },
+        ...wrongs.map(w => ({ text: w, correct: false }))
+      ]);
+
+      questions.push({
+        typeKey,
+        a: data.a,
+        b: data.b,
+        x: data.x,
+        equationText: text,
+        hint: type.hint,
+        options,
+        correctText,
+        correctValue: data.x
+      });
+
+      lastText = text;
+    }
+    return questions;
+  }
+
+  // ---------- Игра ----------
+  function showScreen(name) {
+    setupEl.classList.toggle('hidden', name !== 'setup');
+    gameEl.classList.toggle('hidden', name !== 'game');
+    resultEl.classList.toggle('hidden', name !== 'result');
+  }
+
+  function startGame() {
+    state.questions = generateQuestions(state.count);
+    state.current = 0;
+    state.locked = false;
+    state.mistakes = [];
+
+    showScreen('game');
+    renderQuestion();
+
+    state.startTime = performance.now();
+    clearInterval(state.timerId);
+    state.timerId = setInterval(() => {
+      const elapsed = (performance.now() - state.startTime) / 1000;
+      timerEl.textContent = formatTime(elapsed);
+    }, 100);
+  }
+
+  function renderQuestion() {
+    const q = state.questions[state.current];
+    equationEl.textContent = q.equationText;
+    hintEl.textContent = q.hint;
+    progressEl.textContent = `${state.current + 1} / ${state.questions.length}`;
+    feedbackEl.textContent = '';
+    feedbackEl.className = 'feedback';
+
+    answersEl.innerHTML = '';
+    q.options.forEach(opt => {
+      const btn = document.createElement('button');
+      btn.textContent = opt.text;
+      btn.addEventListener('click', () => chooseAnswer(btn, opt.correct, q));
+      answersEl.appendChild(btn);
+    });
+  }
+
+  function chooseAnswer(btn, isCorrect, q) {
+    if (state.locked) return;
+
+    if (isCorrect) {
+      state.locked = true;
+      btn.classList.add('correct');
+      feedbackEl.textContent = 'Верно!';
+      feedbackEl.className = 'feedback right';
+
+      // блокируем остальные кнопки
+      [...answersEl.children].forEach(b => b.disabled = true);
+
+      setTimeout(() => {
+        state.current++;
+        state.locked = false;
+        if (state.current >= state.questions.length) {
+          finishGame();
+        } else {
+          renderQuestion();
+        }
+      }, 450);
+    } else {
+      btn.classList.add('wrong');
+      btn.disabled = true;
+      feedbackEl.textContent = 'Неверно. Подумай ещё';
+      feedbackEl.className = 'feedback wrong';
+
+      // запоминаем ошибку (по одному разу на пример)
+      if (!state.mistakes.find(m => m.equation === q.equationText)) {
+        state.mistakes.push({
+          equation: q.equationText,
+          chosen: btn.textContent,
+          correct: q.correctText
+        });
+      }
+    }
+  }
+
+  function finishGame() {
+    clearInterval(state.timerId);
+    const elapsed = (performance.now() - state.startTime) / 1000;
+
+    const key = bestKey();
+    const isNewRecord = state.mistakes.length === 0
+      ? saveBest(key, state.count, elapsed)
+      : false; // рекорд только если без ошибок
+    const best = getBest(key, state.count);
+
+    $('resultTime').textContent = formatTime(elapsed);
+    $('resultStats').textContent = state.mistakes.length === 0
+      ? 'Без ошибок! 🎉'
+      : `Ошибок: ${state.mistakes.length}`;
+
+    const noteEl = $('recordNote');
+    if (state.mistakes.length > 0) {
+      noteEl.textContent = 'Рекорд считается только при прохождении без ошибок.';
+      noteEl.className = 'record-note';
+    } else if (isNewRecord) {
+      noteEl.textContent = '🏆 Новый рекорд!';
+      noteEl.className = 'record-note new';
+    } else {
+      noteEl.textContent = 'Хороший результат, но не рекорд 💪';
+      noteEl.className = 'record-note';
+    }
+
+    $('bestInfo').textContent = best
+      ? `Лучший результат (${state.count} примеров): ${formatTime(best.time)}`
+      : '';
+
+    // Список ошибок
+    const ml = $('mistakesList');
+    if (state.mistakes.length > 0) {
+      ml.classList.add('show');
+      ml.innerHTML = '<b>Разбор ошибок:</b>' +
+        state.mistakes.map(m =>
+          `<div>${m.equation} → ты выбрал «${m.chosen}», правильный ответ: «${m.correct}»</div>`
+        ).join('');
+    } else {
+      ml.classList.remove('show');
+      ml.innerHTML = '';
+    }
+
+    showScreen('result');
+    updateBestPreview();
+  }
+
+  // ---------- События ----------
+  $('startBtn').addEventListener('click', startGame);
+  $('restartBtn').addEventListener('click', () => {
+    showScreen('setup');
+    updateBestPreview();
+  });
+
+  // первичная отрисовка
+  renderTypes();
+  updateBestPreview();
+})();
+</script>
+</body>
+</html>
