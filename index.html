@@ -800,5 +800,36 @@
       noteEl.className = 'record-note';
     }
 
-    $('bestInfo').textContent = best
-      ? `Лучший результат (${state.count} примеров): ${formatTime(best.time)}
+       $('bestInfo').textContent = best
+      ? `Лучший результат (${state.count} примеров): ${formatTime(best.time)}`
+      : '';
+
+    const ml = $('mistakesList');
+    if (state.mistakes.length > 0) {
+      ml.classList.add('show');
+      ml.innerHTML = '<b>Разбор ошибок:</b>' +
+        state.mistakes.map(m =>
+          `<div>${m.equation} → ты выбрал «${m.chosen}», правильный ответ: «${m.correct}»</div>`
+        ).join('');
+    } else {
+      ml.classList.remove('show');
+      ml.innerHTML = '';
+    }
+
+    showScreen('result');
+    updateBestPreview();
+  }
+
+  // ---------- События ----------
+  $('startBtn').addEventListener('click', startGame);
+  $('restartBtn').addEventListener('click', () => {
+    showScreen('setup');
+    updateBestPreview();
+  });
+
+  renderTypes();
+  updateBestPreview();
+})();
+</script>
+</body>
+</html>
